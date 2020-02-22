@@ -3,10 +3,12 @@ import Order from "../../models/order";
 export const ADD_ORDER = 'ADD_ORDER';
 export const SET_ORDERS = "SET_ORDERS";
 
-export const addOrder = (cartItems, totalAmount) => async dispatch => {
+export const addOrder = (cartItems, totalAmount) => async (dispatch, getState) => {
   try {
+    const userId = getState().auth.userId
+    const token = getState().auth.token
     const today = new Date().toISOString()
-    const res = await fetch('https://native-shopapp-f4694.firebaseio.com/orders/u1.json',
+    const res = await fetch(`https://native-shopapp-f4694.firebaseio.com/orders/${userId}.json?auth=${token}`,
     {
       method:'POST',
       headers:{
@@ -35,9 +37,10 @@ export const addOrder = (cartItems, totalAmount) => async dispatch => {
   
 };
 
-export const fetchOrders = () => async dispatch => {
+export const fetchOrders = () => async (dispatch, getState) => {
   try {
-    const res = await fetch('https://native-shopapp-f4694.firebaseio.com/orders/u1.json');
+    const userId = getState().auth.userId
+    const res = await fetch(`https://native-shopapp-f4694.firebaseio.com/orders/${userId}.json`);
 
     if(!res.ok){
       throw new Error('Something went wrong')

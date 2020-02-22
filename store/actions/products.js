@@ -5,13 +5,16 @@ export const CREATE_PRODUCT = 'CREATE_PRODUCT';
 export const UPDATE_PRODUCT = 'UPDATE_PRODUCT';
 export const SET_PRODUCTS = 'SET_PRODUCTS';
 
-export const fetchProducts = () => async dispatch => {
+export const fetchProducts = () => async (dispatch, getState) => {
 
   try {
 
+    const userId = getState().auth.userId
     const res = await fetch('https://native-shopapp-f4694.firebaseio.com/products.json');
 
     if(!res.ok){
+      const data = await res.json()
+      console.log(data)
       throw new Error('Something went wrong')
     }
 
@@ -20,7 +23,7 @@ export const fetchProducts = () => async dispatch => {
     for (let key in products){
       toLoad.push(new Product(
         key,
-        'u1', 
+        products[key].ownerId, 
         products[key].title, 
         products[key].imageUrl, 
         products[key].description,
@@ -28,7 +31,11 @@ export const fetchProducts = () => async dispatch => {
       ))
     }
   
-    dispatch({type: SET_PRODUCTS, toLoad: toLoad})
+    dispatch({
+      type: SET_PRODUCTS,
+      toLoad: toLoad,
+      userProducts: toLoad.filter(prod => prod.ownerId === userId)
+    })
 
   } catch (err) {
     console.log(err)
@@ -36,17 +43,20 @@ export const fetchProducts = () => async dispatch => {
   }
 }
 
-export const deleteProduct = productId => async dispatch => {
-  await fetch(`https://native-shopapp-f4694.firebaseio.com/products/${productId}.json`, {
+export const deleteProduct = productId => async (dispatch, getState) => {
+  const token = getState().auth.token
+  await fetch(`https://native-shopapp-f4694.firebaseio.com/products/${productId}.json?auth=${token}`, {
     method: 'DELETE'
   });
   dispatch({ type: DELETE_PRODUCT, pid: productId });
 };
 
-export const createProduct = (title, description, imageUrl, price) => async dispatch => {
+export const createProduct = (title, description, imageUrl, price) => async (dispatch, getState) => {
 
   try {
-    const response = await fetch('https://native-shopapp-f4694.firebaseio.com/products.json', {
+    const token = getState().auth.token
+    const userId = getState().auth.userId
+    await fetch(`https://native-shopapp-f4694.firebaseio.com/products.json?auth=${token}`, {
       method: 'POST',
       headers:{
         'Content-Type': 'application/json'
@@ -55,7 +65,8 @@ export const createProduct = (title, description, imageUrl, price) => async disp
         title,
         description,
         imageUrl,
-        price
+        price,
+        ownerId: userId
       })
     });
     dispatch({
@@ -64,7 +75,8 @@ export const createProduct = (title, description, imageUrl, price) => async disp
         title,
         description,
         imageUrl,
-        price
+        price,
+        ownerId: userId
       }
     });
   } catch (err) {
@@ -72,10 +84,10 @@ export const createProduct = (title, description, imageUrl, price) => async disp
   }
 };
 
-export const updateProduct = (id, title, description, imageUrl) => async dispatch => {
+export const updateProduct = (id, title, description, imageUrl) => async (dispatch, getState) => {
   try {
-    console.log(title)
-    const res  = await fetch(`https://native-shopapp-f4694.firebaseio.com/products/${id}.json`, {
+    const token = getState().auth.token
+    const res  = await fetch(`https://native-shopapp-f4694.firebaseio.com/products/${id}.json?auth=${token}`, {
       method: 'PATCH',
       headers:{
         'Content-Type': 'application/json'
@@ -87,7 +99,6 @@ export const updateProduct = (id, title, description, imageUrl) => async dispatc
       })
     });
     const data = await res.json();
-    console.log(data)
     dispatch({
       type: UPDATE_PRODUCT,
       pid: id,
